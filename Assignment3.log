@@ -1,0 +1,789 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 59         
+ 60         /* Assignment3.sas */
+ 61         /* Names: Joshua Song
+ 62         Hassasn Ahmed
+ 63         Sanchit Thakrar*/
+ 64         proc format;
+ 65           value sex
+ 66             1=Female
+ 67             2=Male
+ 68              ;
+ NOTE: Format SEX is already on the library WORK.FORMATS.
+ NOTE: Format SEX has been output.
+ 69           value race
+ 70             1=Asian
+ 71             2=Black
+ 72             3=Caucasian
+ 73             4=Other
+ 74              ;
+ NOTE: Format RACE is already on the library WORK.FORMATS.
+ NOTE: Format RACE has been output.
+ 75         run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              99.21k
+       OS Memory           27296.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        280  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     21
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           32
+       
+ 
+ 76         
+ 77         /*
+ 78         Create a SAS data set called STUDY as follows:
+ 79         1 - Read in the data in suppTRP-1062.txt.
+ 80         Create the variable Site with length of 1.
+ 81         Create the variable Pt as character of length 2.
+ 82         All other variables should be created as numeric with the default length of 8.
+ 83         */
+ 84         
+ 85         data study;
+ 86           /* on infile statement need (1) dsd or dlm=',' (2) missover or truncover */
+ 87           infile '/courses/dc4508e5ba27fe300/c_629/suppTRP-1062.txt' dlm=',' missover;
+ 88         
+ 89           /* Method 1: use informat and input statements */
+ 90           /* informat can be either mmddyy8. or mmddyy10. */
+ 91           informat Site $1. Pt $2. Dosedate mmddyy10.;
+ 92           input Site Pt Sex Race Dosedate Height Weight Result1 Result2 Result3;
+ 93         
+ 94           /* Method 2: use an input statement - any of these will work */
+ 95           * input Site:$1. Pt:$2. Sex:8. Race:8. Dosedate:mmddyy10. Height:8. Weight:8. Result1-Result3:8.;
+ 96           * input Site:$1. Pt:$2. Sex Race Dosedate:mmddyy10. Height Weight Result1-Result3;
+ 97         
+ 98         /*
+ 99         2 - Using if-then statements, create a new variable called Doselot (Dose Lot).
+ 100        If the dose date is in 1997, then the dose lot is S0576.
+ 101        If the dose date is in 1998 and on or before 10 January 1998, then the dose lot is P1122.
+ 102        If the dose date is after 10 January 1998, then the dose lot is P0526.
+ 103        */
+ 104        
+ 105          if '01JAN1997'd <= dosedate <= '31DEC1997'd then doselot='S0576';
+ 106          else if '31DEC1997'd < dosedate <= '10JAN1998'd then doselot='P1122';
+ 107          else if dosedate > '10JAN1998'd then doselot='P0526';
+ 108        
+ 109        /*
+ 110        3 - Using two do loops, create two new variables called prot_amend (Protocol Amendment) and
+ 111        Limit (Lower Limit of Detection).
+ 112        If the dose lot is P0526 then the Protocol Amendment is B.
+ 113        For all other dose lots, the Protocol Amendment is A.
+ 114        The Lower Limit of Detection is 0.03 for female patients who received dose lot P0526.
+ 115        The Lower Limit of Detection is 0.02 for male patients who received dose lot P0526.
+ 116        The Lower Limit of Detection is 0.02 for patients who received dose lots S0576 and P1122.
+ 117        */
+ 118        
+ 119          if doselot='P0526' then do;
+ 120            prot_amend='B';
+ 121            if sex=1 then limit=0.03;
+ 122            else if sex=2 then limit=0.02;
+ 123          end;
+ 124          else if doselot = 'S0576' or doselot='P1122' then do;
+ 125            prot_amend='A';
+ 126            limit=0.02;
+ 127          end;
+ 128        
+ 129        /*
+ 130        4 - Using a select statement, use the variable Site to create a new variable called site_name (Site Name) which contains
+ 130      ! the name of the Study Site.
+ 131        The Site values and associated names are:
+ 132        J=Aurora Health Associates, Q=Omaha Medical Center, R=Sherwin Heights Healthcare
+ 133        */
+ 134        
+ 135        length site_name $30;
+ 136          select(site);
+ 137            when ('J') site_name='Aurora Health Associates';
+ 138            when ('Q') site_name='Omaha Medical Center';
+ 139            when ('R') site_name='Sherwin Heights Healthcare';
+ 140            otherwise;
+ 141          end;
+ 142        
+ 143        /*
+ 144        5 - Create and apply formats to the Sex and Race variables.
+ 145        The decodes for sex are 1=Female, 2=Male
+ 146        The decodes for race are 1=Asian, 2=Black, 3=Caucasian, 4=Other
+ 147        */
+ 148        
+ 149          format sex sex. race race. dosedate date.;
+ 150        
+ 151        /*
+ 152        6 - Using the descriptive information provided previously, create labels for these variables:
+ 153        
+ 154        Site, Pt, Dosedate, Doselot, prot_amend, Limit, site_name
+ 155        */
+ 156        
+ 157          label site='Study Site'
+ 158                pt='Patient'
+ 159                dosedate='Dose Date'
+ 160                doselot='Dose Lot'
+ 161                prot_amend='Protocol Amendment'
+ 162                limit='Lower Limit of Detection'
+ 163                site_name='Site Name';
+ 164        run;
+ 
+ NOTE: The infile '/courses/dc4508e5ba27fe300/c_629/suppTRP-1062.txt' is:
+       Filename=/courses/dc4508e5ba27fe300/c_629/suppTRP-1062.txt,
+       Owner Name=justina.flavin,Group Name=nobody,
+       Access Permission=-rw-r--r--,
+       Last Modified=19Mar2011:19:31:59,
+       File Size (bytes)=537
+ 
+ NOTE: 15 records were read from the infile '/courses/dc4508e5ba27fe300/c_629/suppTRP-1062.txt'.
+       The minimum record length was 21.
+       The maximum record length was 38.
+ NOTE: The data set WORK.STUDY has 15 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              630.28k
+       OS Memory           27812.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        281  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     139
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 165        
+ 166        /*
+ 167        7 -  DEMOG1062 is a permanent SAS data set located on the server in the directory
+ 167      ! /courses/u_ucsd.edu1/i_536036/c_629/saslib
+ 168        Create a new data set called PAT_INFO by merging STUDY and DEMOG1062 by their two common variables.
+ 169        Also add items in 8-12 to PAT_INFO.
+ 170        Note: Your code should create a single data set called PAT_INFO, which contains the merge code and items 8-12.
+ 171        PAT_INFO should contain 15 observations and 21 variables.
+ 172        */
+ 173        libname class "/courses/dc4508e5ba27fe300/c_629/saslib" access=readonly;
+ NOTE: Libref CLASS was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /courses/dc4508e5ba27fe300/c_629/saslib
+ 174        
+ 175        proc sort data=study;
+ 176          by site pt;
+ 177        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.STUDY.
+ NOTE: The data set WORK.STUDY has 15 observations and 14 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              776.62k
+       OS Memory           28072.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        282  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     115
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 178        
+ 179        proc sort data=class.demog1062 out=demog;
+ NOTE: Data file CLASS.DEMOG1062.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 180          by site pt;
+ 181        run;
+ 
+ NOTE: There were 15 observations read from the data set CLASS.DEMOG1062.
+ NOTE: The data set WORK.DEMOG has 15 observations and 4 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1122.78k
+       OS Memory           28072.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        283  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 182        
+ 183        data pat_info;
+ 184          merge study demog;
+ 185          by site pt;
+ 186        
+ 187        /*
+ 188        8 - Create a variable called pt_id by concatenating Site and Pt and adding a hyphen between the two variables.
+ 189        An example value of pt_id should look like: Z-99. Label the variable 'Site-Patient'.
+ 190        */
+ 191        /* Comments: cats function can also be replaced with cat or catx('-',site,pt) */
+ 192        
+ 193          if not missing(site) and not missing(pt) then
+ 194          pt_id=cats(site,'-',pt);
+ 195        
+ 196        /*
+ 197        9 - Use 1 statement to create a variable dose_qtr by concatenating the letter 'Q' to the number which corresponds to the
+ 197      ! quarter of the year in which the dose date falls.
+ 198        Values of dose_qtr should look like Q1, Q2, etc.
+ 199        */
+ 200        
+ 201          if not missing(dosedate) then dose_qtr=cats('Q',qtr(dosedate));
+ 202        
+ 203        /*
+ 204        10 - Create a variable mean_result which is the mean of result1, result2, and result3.
+ 205        The mean should be calculated using all non-missing values of the three variables.
+ 206        Format mean_result to 2 decimal places.
+ 207        */
+ 208        
+ 209          if nmiss(of result1-result3) < 3 then mean_result=mean(of result1-result3);
+ 210        
+ 211        /*
+ 212        11 - Create a variable BMI which is calculated as:  Weight ÷ (Height)2 x 703
+ 213        Format BMI to 1 decimal place.
+ 214        */
+ 215        
+ 216          if nmiss(weight,height)=0 and height ne 0 then
+ 217          BMI=weight*703/(height**2);
+ 218        
+ 219        /*
+ 220        12 - Create a variable est_end which is the Estimated Termination Date for the patient.
+ 221        Use an assignment statement. Do not use a function.
+ 222        If Protocol Amendment is A then est_end is 120 days after Dose Date.
+ 223        If Protocol Amendment is B then est_end is 90 days after Dose Date.
+ 224        Apply a format so that the est_end is displayed as mm/dd/yyyy.
+ 225        Label the variable 'Estimated Termination Date'.
+ 226        */
+ 227          /* option 1: use if-then statements */
+ 228          if prot_amend='A' then est_end=dosedate+120;
+ 229          else if prot_amend='B' then est_end=dosedate+90;
+ 230          /* option 2: use select statement */
+ 231          select(prot_amend);
+ 232            when ('A') est_end=dosedate+120;
+ 233            when ('B') est_end=dosedate+90;
+ 234            otherwise;
+ 235          end;
+ 236        
+ 237          label pt_id='Site-Patient'
+ 238                est_end='Estimated Termination Date';
+ 239        
+ 240          format mean_result 8.2 bmi 4.1 est_end mmddyy10.;
+ 241        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.STUDY.
+ NOTE: There were 15 observations read from the data set WORK.DEMOG.
+ NOTE: The data set WORK.PAT_INFO has 15 observations and 21 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1282.75k
+       OS Memory           28332.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        284  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     179
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 242        
+ 243        /*
+ 244        13 - Using the data set PAT_INFO, generate the following output using PROC PRINT:
+ 245        */
+ 246        /* comment: There are two ways to prevent the datetime and page numbers at the top of the output window
+ 247           from interfering with your output.
+ 248           (1) use options nodate nonumber; - this turns off these options
+ 249           (2) use title2 or title3 to move your output below the datetime and page numbers */
+ 250        
+ 251        options nodate nonumber;
+ 252        title3 Listing of Baseline Patient Information for Patients Having Weight > 250 ;
+ 253        proc print data=pat_info double split='*';
+ 254          where weight > 250;
+ 255          by site site_name;
+ 256          id site site_name;
+ 257          var pt age sex race height weight dosedate doselot;
+ 258          label age='Age'
+ 259                dosedate='Date of*First Dose'
+ 260        doselot='Dose Lot Number';
+ 261          format dosedate mmddyy.;
+ 262        run;
+ 
+ NOTE: There were 5 observations read from the data set WORK.PAT_INFO.
+       WHERE weight>250;
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.00 seconds
+       memory              2121.87k
+       OS Memory           28584.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        285  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     143
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           16
+       
+ 
+ 263        
+ 264        /* turn off title */
+ 265        title;
+ 266        
+ 267        /*
+ 268        14 - Use the data set PAT_INFO and one PROC MEANS to do the following:
+ 269        Create output stratified by Sex for the variables Result1, Result2, Result3, Height, and Weight.
+ 270        The display should show the number of non-missing values, mean, standard error, minimum value, maximum value and be
+ 270      ! formatted to one decimal point.
+ 271        Also create an output data set that contains the median value of Weight stratified by Sex.
+ 272        Name the variable that contains the median value of weight med_wt.
+ 273        Your output data set should contain two observations and two variables, Sex and med_wt.
+ 274        */
+ 275        /*
+ 276        15 - Combine the data sets PAT_INFO and the output data set from item 14 by the variable Sex and create a new variable
+ 276      ! called wt_cat as follows:
+ 277        If the patient's weight is less than or equal to the median weight for all patients of that sex, then wt_cat=1.
+ 278        If the patient's weight is more than the median weight for all patients of that sex, then wt_cat=2.
+ 279        Label this variable 'Median Weight Category'.
+ 280        Create and apply a descriptive format to wt_cat:
+ 281        For wt_cat=1, the descriptor is '<= Median Weight'
+ 282        For wt_cat=2, the descriptor is '> Median Weight'
+ 283        Hint: Your new data set should contain 15 observations.
+ 284        */
+ 285        /* There are 2 solutions to 14 & 15 */
+ 286        
+ 287        /* Option 1 - use a CLASS statement */
+ 288        
+ 289        /* Item 14 */
+ 290        
+ 291        proc means data=pat_info n mean stderr min max maxdec=1 nway;
+ 292          class sex;
+ 293          var result1-result3 height weight;
+ 294          output out=med_wt_class(drop = _:) median(weight)=med_wt;
+ 295        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO.
+ NOTE: The data set WORK.MED_WT_CLASS has 2 observations and 2 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.04 seconds
+       system cpu time     0.00 seconds
+       memory              8223.87k
+       OS Memory           35516.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        286  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1771
+       Page Swaps                        0
+       Voluntary Context Switches        36
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 296        
+ 297        /* Note: If the variables on the var statement are re-ordered, the output statement can be simplified as follows:
+ 298        proc means data=pat_info n mean stderr min max maxdec=1 nway;
+ 299          class sex;
+ 300          var weight result1-result3 height;
+ 301          output out=med_wt_class(drop = _:) median=med_wt;
+ 302        run;
+ 303        */
+ 304        
+ 305        /* Item 15 */
+ 306        
+ 307        proc format;
+ 308          value wt_cat
+ 309            1 = '<= Median Weight'
+ 310        2 = '> Median Weight'
+ 311          ;
+ NOTE: Format WT_CAT is already on the library WORK.FORMATS.
+ NOTE: Format WT_CAT has been output.
+ 312        run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              100.59k
+       OS Memory           29856.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        287  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     9
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 313        
+ 314        proc sort data=pat_info;
+ 315          by sex;
+ 316        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO.
+ NOTE: The data set WORK.PAT_INFO has 15 observations and 21 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              777.50k
+       OS Memory           30376.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        288  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     110
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 317        
+ 318        data pat_info_class;
+ 319          merge pat_info med_wt_class;
+ 320          by sex;
+ 321          if . < weight <= med_wt then wt_cat=1;
+ 322          else if weight > med_wt then wt_cat=2;
+ 323          format wt_cat wt_cat.;
+ 324          label wt_cat='Median Weight Category';
+ 325        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO.
+ NOTE: There were 2 observations read from the data set WORK.MED_WT_CLASS.
+ NOTE: The data set WORK.PAT_INFO_CLASS has 15 observations and 23 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1267.34k
+       OS Memory           30636.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        289  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     181
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 326        
+ 327        /* Option 2 - use a BY statement */
+ 328        
+ 329        /* Item 14 */
+ 330        
+ 331        proc sort data=pat_info;
+ 332          by sex;
+ 333        run;
+ 
+ NOTE: Input data set is already sorted, no sorting done.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              388.78k
+       OS Memory           30116.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        290  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     43
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 334        
+ 335        proc means data=pat_info n mean stderr min max maxdec=1;
+ 336          by sex;
+ 337          var result1-result3 height weight;
+ 338          output out=med_wt_by(drop = _:) median(weight)=med_wt;
+ 339        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO.
+ NOTE: The data set WORK.MED_WT_BY has 2 observations and 2 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.04 seconds
+       system cpu time     0.00 seconds
+       memory              2250.18k
+       OS Memory           31404.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        291  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     254
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           280
+       
+ 
+ 340        
+ 341        /* Item 15 */
+ 342        
+ 343        proc format;
+ 344          value wt_cat
+ 345            1 = '<= Median Weight'
+ 346        2 = '> Median Weight'
+ 347          ;
+ NOTE: Format WT_CAT is already on the library WORK.FORMATS.
+ NOTE: Format WT_CAT has been output.
+ 348         run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              100.59k
+       OS Memory           29856.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        292  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     9
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 349        
+ 350        data pat_info_by;
+ 351          merge pat_info med_wt_by;
+ 352          by sex;
+ 353          if . < weight <= med_wt then wt_cat=1;
+ 354          else if weight > med_wt then wt_cat=2;
+ 355          format wt_cat wt_cat.;
+ 356          label wt_cat='Median Weight Category';
+ 357        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO.
+ NOTE: There were 2 observations read from the data set WORK.MED_WT_BY.
+ NOTE: The data set WORK.PAT_INFO_BY has 15 observations and 23 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.01 seconds
+       memory              1266.71k
+       OS Memory           30636.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        293  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     164
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 358        
+ 359        /*
+ 360        16 - Using your data set from Item 15 and one PROC FREQ to do the following:
+ 361        Show the frequency distributions of (1) Dose Lot Numbers and (2) Median Weight Category. Exclude missing values from the
+ 361      ! frequency distributions.
+ 362        Generate a two-way table for Race by Weight. Include missing values in the frequency distribution.
+ 363        Use formats to group Race and Weight variables as follows:
+ 364        If Race is Caucasian then display the race as 'White'.
+ 365        If Race is anything else (including missing) then display the race as 'Other'.
+ 366        Group Weight into the following 4 categories: < 200, 200 to < 300, >= 300, Missing
+ 367        */
+ 368        
+ 369        proc format;
+ 370          value races
+ 371            other ='Other' 3='White';
+ NOTE: Format RACES is already on the library WORK.FORMATS.
+ NOTE: Format RACES has been output.
+ 372          value wt
+ 373            .        = 'Missing'
+ 374            low-<200 = '<200'
+ 375            200-<300 = '200-<300'
+ 376            300-high = '>=300';
+ NOTE: Format WT is already on the library WORK.FORMATS.
+ NOTE: Format WT has been output.
+ 377        run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              100.59k
+       OS Memory           29856.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        294  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     9
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 378        
+ 379        proc freq data=pat_info_by;
+ 380          tables doselot wt_cat;
+ 381          tables race*weight / missing;
+ 382          format race races. weight wt.;
+ 383        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO_BY.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.04 seconds
+       system cpu time     0.00 seconds
+       memory              1476.03k
+       OS Memory           30636.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        295  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     182
+       Page Swaps                        0
+       Voluntary Context Switches        18
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           536
+       
+ 
+ 384        
+ 385        /*
+ 386        17 - Using your data set from Item 15 and one PROC UNIVARIATE to do the following:
+ 387        Generate summary statistics for Height stratified by Median Weight Category.
+ 388        Identify the extreme values using the Site-Patient identifier variable.
+ 389        */
+ 390        /* Note: Either a BY statement or a CLASS statement can be used.
+ 391           However, using CLASS eliminates the need to sort the data. */
+ 392        
+ 393        proc univariate data=pat_info_by;
+ 394         class wt_cat;
+ 395         var height;
+ 396         id pt_id;
+ 397        run;
+ 
+ NOTE: PROCEDURE UNIVARIATE used (Total process time):
+       real time           0.09 seconds
+       user cpu time       0.10 seconds
+       system cpu time     0.00 seconds
+       memory              781.28k
+       OS Memory           30116.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        296  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     55
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           48
+       
+ 
+ 398        
+ 399        /*Prewritten Code for Part XVIII*/
+ 400        /* No errors or warnings yet but it is a good starting point */
+ 401        
+ 402        title 'Summary of Mean Analyte Results by Weight Category and Sex';
+ 403        proc report data = pat_info_by nowindows headline;
+ 404        column wt_cat sex(site_name,(result1 result2 result3));
+ 405        define wt_cat / group left 'Weight Category';
+ 406        define sex/ group left;
+ 407        
+ 408        define site_name / across '-Site-';
+ 409        define result1 / analysis mean 'Mean Result1' width = 6 format = 4.3;
+ 410        define result2 / analysis mean 'Mean Result2' width = 6 format = 4.3;
+ 411        define result3 / analysis mean 'Mean Result3' width = 6 format = 4.3;
+ 412        break after wt_cat /skip;
+ 413        
+ 414        run;
+ 
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO_BY.
+ NOTE: At least one W.D format was too small for the number to be printed. The decimal may be shifted by the "BEST" format.
+ NOTE: PROCEDURE REPORT used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              7764.50k
+       OS Memory           36024.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        297  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     1497
+       Page Swaps                        0
+       Voluntary Context Switches        24
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           24
+       
+ 
+ 415        /* Prewritten Code for Part XIX */
+ 416        title "Listing of Baseline Patient Characteristics";
+ 417        proc report;
+ 418        column pt_id dosedate age sex race wt_cat BMI BMI_cat result1 result2 absChange;
+ 419        format dosedate mmddyy.;
+ 420        define result1 / display'Analyte Result 1';
+ 421        define result2 / display'Analyte Result 2';
+ 422        define age / 'Age';
+ 423        define wt_cat / "Weight Category";
+ 424        define absChange /'Absolute Change' width=8 format=4.1;
+ 425        compute absChange;
+ 426        absChange = result2 - result1;
+ 427        endcomp;
+ 428        define BMI / display 'BMI';
+ 429        define BMI_cat / 'BMI Category';
+ 430        compute BMI_cat / character length=11;
+ 431        if BMI lt 18.5 then BMI_cat = 'Underweight';
+ 432        else if BMI ge 25 and BMI lt 30 then BMI_cat='Overweight';
+ 433        else if BMI ge 18.5 and BMI lt 25 then BMI_cat='Normal';
+ 434        else if BMI ge 30 then BMI_cat = 'Obese';
+ 435        endcomp;
+ 436        run;
+ 
+ NOTE: Missing values were generated as a result of performing an operation on missing values.
+       Each place is given by: (Number of times) at (Line):(Column).
+       4 at 1:22   
+ NOTE: There were 15 observations read from the data set WORK.PAT_INFO_BY.
+ NOTE: PROCEDURE REPORT used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.05 seconds
+       system cpu time     0.00 seconds
+       memory              6758.85k
+       OS Memory           36016.00k
+       Timestamp           11/23/2017 09:29:25 PM
+       Step Count                        298  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     1401
+       Page Swaps                        0
+       Voluntary Context Switches        20
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 437        
+ 438        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 450        
